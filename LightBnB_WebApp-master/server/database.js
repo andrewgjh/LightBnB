@@ -20,7 +20,10 @@ const pool = new Pool({
 const getUserWithEmail = function(email) {
   return pool
   .query(`SELECT * FROM users WHERE email = $1`,[email])
-  .then(user => {return Promise.resolve(user.rows[0])});
+  .then(user => {return Promise.resolve(user.rows[0])})
+  .catch((err) => {
+    console.log(err.message);
+  });
 };
 
 exports.getUserWithEmail = getUserWithEmail;
@@ -33,7 +36,10 @@ exports.getUserWithEmail = getUserWithEmail;
 const getUserWithId = function(id) {
     return pool
     .query(`SELECT * FROM users WHERE id = $1`,[id])
-    .then(user => {return Promise.resolve(user.rows[0])});
+    .then(user => {return Promise.resolve(user.rows[0])})
+    .catch((err) => {
+      console.log(err.message);
+    });
 }
 
 exports.getUserWithId = getUserWithId;
@@ -51,14 +57,12 @@ const addUser =  function(user) {
   const values = [user.name, user.password, user.email]
   return pool
     .query(addUserQuery, values)
-    .then(newUser => {return Promise.resolve(newUser.rows)});
+    .then(newUser => {return Promise.resolve(newUser.rows)})
+    .catch((err) => {
+      console.log(err.message);
+    });
 };
-// const addUser =  function(user) {
-//   const userId = Object.keys(users).length + 1;
-//   user.id = userId;
-//   users[userId] = user;
-//   return Promise.resolve(user);
-// }
+
 exports.addUser = addUser;
 
 /// Reservations
@@ -69,8 +73,20 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+  const queryString = `
+  SELECT properties.* FROM properties
+  JOIN reservations ON property_id = properties.id
+  WHERE reservations.guest_id = $1
+  AND reservations.end_date < Now()::date
+  LIMIT $2`
+  return pool
+    .query(queryString,[guest_id, limit])
+    .then(data=>{return Promise.resolve(data.rows)})
+    .catch((err) => {
+      console.log(err.message);
+    });
 }
+
 exports.getAllReservations = getAllReservations;
 
 /// Properties
@@ -92,7 +108,6 @@ const getAllProperties = (options, limit = 10) => {
 };
   
 exports.getAllProperties = getAllProperties;
-
 
 /**
  * Add a property to the database
