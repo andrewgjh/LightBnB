@@ -74,10 +74,9 @@ exports.addUser = addUser;
  */
 const getAllReservations = function(guest_id, limit = 10) {
   const queryString = `
-  SELECT properties.* FROM properties
+  SELECT properties.* ,reservations.start_date, reservations.end_date FROM properties 
   JOIN reservations ON property_id = properties.id
   WHERE reservations.guest_id = $1
-  AND reservations.end_date < Now()::date
   LIMIT $2`
   return pool
     .query(queryString,[guest_id, limit])
@@ -99,13 +98,67 @@ exports.getAllReservations = getAllReservations;
  */
 
 const getAllProperties = (options, limit = 10) => {
-  return pool
-    .query(`SELECT * FROM properties LIMIT $1`, [limit])
-    .then((result) => result.rows)
-    .catch((err) => {
-      console.log(err.message);
-    });
+  console.log(options);
+  const {
+    city,
+    owner_id,
+    minimum_price_per_night,
+    maximum_price_per_night,
+    minimum_rating
+  } = options;
+  
+  const queryParams = [];
+  // 2
+  let queryString = `
+  SELECT properties.*, avg(property_reviews.rating) as average_rating
+  FROM properties
+  JOIN property_reviews ON properties.id = property_id
+  WHERE true
+  `;
+
+  if (owner_id) {
+    queryParams.push(`${owner_id}`);
+    queryString += `
+    AND owner_id = $${queryParams.length}`;
+  }
+  if (city) {
+    queryParams.push(`%${city}%`);
+    queryString += `
+    AND city LIKE $${queryParams.length}`;
+  }
+  if (minimum_price_per_night) {
+    queryParams.push(`${minimum_price_per_night}`);
+    queryString += `
+    AND cost_per_night > $${queryParams.length}`;
+  }
+  if (maximum_price_per_night) {
+    queryParams.push(`${maximum_price_per_night}`);
+    queryString += `
+    AND cost_per_night < $${queryParams.length}`;
+  }
+  queryString += `
+  GROUP BY properties.id
+  `
+  if (minimum_rating) {
+    queryParams.push(`${minimum_rating}`);
+    queryString += `
+    HAVING avg(property_reviews.rating) > $${queryParams.length} `;
+  }
+
+  // 4
+  queryParams.push(limit);
+  queryString += `
+  ORDER BY cost_per_night
+  LIMIT $${queryParams.length};
+  `;
+
+  // 5
+  console.log(queryString, queryParams);
+
+  // 6
+  return pool.query(queryString, queryParams).then((res) => {return Promise.resolve(res.rows)});
 };
+
   
 exports.getAllProperties = getAllProperties;
 
@@ -121,3 +174,6 @@ const addProperty = function(property) {
   return Promise.resolve(property);
 }
 exports.addProperty = addProperty;
+
+
+
