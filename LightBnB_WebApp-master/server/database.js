@@ -1,5 +1,3 @@
-const properties = require('./json/properties.json');
-const users = require('./json/users.json');
 const {Pool} = require('pg');
 
 const pool = new Pool({
@@ -98,7 +96,6 @@ exports.getAllReservations = getAllReservations;
  */
 
 const getAllProperties = (options, limit = 10) => {
-  console.log(options);
   const {
     city,
     owner_id,
@@ -168,9 +165,7 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
-  // console.log(property);
   const queryParams = Object.values(property);
-  // console.log(queryParams);
   const queryString = `
   INSERT INTO properties (
     title,
@@ -193,12 +188,6 @@ const addProperty = function(property) {
     .query(queryString, queryParams)
     .then((res) => {return Promise.resolve(res.rows)});
 } 
-// const addProperty = function(property) {
-//   const propertyId = Object.keys(properties).length + 1;
-//   property.id = propertyId;
-//   properties[propertyId] = property;
-//   return Promise.resolve(property);
-// }
 exports.addProperty = addProperty;
 
 
